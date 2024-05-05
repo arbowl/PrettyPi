@@ -92,12 +92,12 @@
                                 <th>Done At</th>
                                 <th>Delete</th>
 							</tr>
-							{% for doneTask in doneTasks %}
+							{% for done_task in done_tasks %}
 							<tr>
 								<td>{{ loop.index }}.</td>
-								<td>{{ doneTask.1 }}</td>
-                                <td>{{ doneTask.2 }}</td>
-                                <td>{{ doneTask.4 }}</td>
+								<td>{{ done_task.1 }}</td>
+                                <td>{{ done_task.2 }}</td>
+                                <td>{{ done_task.4 }}</td>
                                 <td><a href="delete_task?task_id={{ done_task.0 }}" class="btn btn-block btn-danger btn-sm">Delete</a></td>
 							</tr>
 							{% endfor %}
