@@ -11,16 +11,10 @@ from kivy.animation import Animation
 from ArabicLabel import ArabicLabel
 import arabic_reshaper
 import sqlite3
-import threading;
+import threading
 from kivy.clock import Clock
 
-class PrettyPiApp( App ):
-	theme_cls = ThemeManager();
-	mainBox = None;
-	connection = None;
-	cursor = None;
-
-	kvMain = '''
+kv_config = """
 #:import Toolbar kivymd.toolbar.Toolbar
 #:import NavigationLayout kivymd.navigationdrawer.NavigationLayout
 #:import MDNavigationDrawer kivymd.navigationdrawer.MDNavigationDrawer
@@ -33,7 +27,7 @@ NavigationLayout:
         NavigationDrawerToolbar:
             title: "Navigation Drawer"
         NavigationDrawerIconButton:
-			id: quitBtn
+			id: quit_button
             icon: 'checkbox-blank-circle'
             text: "Quit"
 
@@ -63,57 +57,55 @@ NavigationLayout:
 				name: 'mainScreen'
 
 				BoxLayout:
-					id: mainBox
+					id: main_box
 					orientation: 'vertical'
-	''';
-
-	def build( self ):
-		mainWidget = Builder.load_string( self.kvMain );
-
-		self.connection = sqlite3.connect( 'data.db' );
-		self.cursor = self.connection.cursor();
-		self.mainBox = mainWidget.ids.mainBox;
-		self.quitBtn = mainWidget.ids.quitBtn;
-
-		self.quitBtn.bind( on_press = lambda e: exit() );
-
-		# ... #
-
-		self.refreshList();
-
-		# .. #
-
-		Clock.schedule_interval( self.checkUpdates, 0.5 );
-
-		# ... #
-
-		return mainWidget;
-
-	def refreshList( self ):
-		self.mainBox.clear_widgets();
-
-		self.cursor.execute( "SELECT * FROM TODO WHERE DONE = 'N'" );
-		tasks = self.cursor.fetchall();
-
-		for task in tasks:
-			taskText = task[ 1 ];
-
-			if task[ 5 ] == 'Y':
-				taskText += " (Working On)";
-
-			self.mainBox.add_widget( ArabicLabel( text = taskText, halign = 'center', font_style = 'Display1' ) );
-
-	def checkUpdates( self, dt ):
-		self.cursor.execute( "SELECT COUNT( 1 ) FROM UPDATE_REQUESTS WHERE UPDATE_TYPE = 'UPDATE_TODO_LIST' AND DONE = 'N'" );
-
-		result = self.cursor.fetchone();
-
-		if result[ 0 ] > 0:
-			self.refreshList();
-
-			self.cursor.execute( "UPDATE UPDATE_REQUESTS SET DONE = 'Y' WHERE UPDATE_TYPE = 'UPDATE_TODO_LIST'" );
-			self.connection.commit();
+	"""
 
 
-if __name__ == '__main__':
-	PrettyPiApp().run();
+class PrettyPiApp(App):
+    theme_cls = ThemeManager()
+    main_box = None
+    connection = None
+    cursor = None
+    kv_main = kv_config
+
+    def build(self):
+        main_widget = Builder.load_string(self.kv_main)
+        self.connection = sqlite3.connect("data.db")
+        self.cursor = self.connection.cursor()
+        self.main_box = main_widget.ids.mainBox
+        self.quit_button = main_widget.ids.quitBtn
+        self.quit_button.bind(on_press=lambda e: exit())
+        self.refresh_list()
+        Clock.schedule_interval(self.check_updates, 0.5)
+        return main_widget
+
+    def refresh_list(self) -> None:
+        self.main_box.clear_widgets()
+        self.cursor.execute("SELECT * FROM TODO WHERE DONE = 'N'")
+        tasks = self.cursor.fetchall()
+        for task in tasks:
+            task_text = task[1]
+            if task[5] == "Y":
+                task_text += " (Working On)"
+            self.main_box.add_widget(
+                ArabicLabel(text=task_text, halign="center", font_style="Display1")
+            )
+
+    def check_updates(self) -> None:
+        self.cursor.execute(
+            "SELECT COUNT( 1 ) FROM UPDATE_REQUESTS WHERE UPDATE_TYPE = "\
+            "'UPDATE_TODO_LIST' AND DONE = 'N'"
+        )
+        result = self.cursor.fetchone()
+        if result[0] > 0:
+            self.refresh_list()
+            self.cursor.execute(
+                "UPDATE UPDATE_REQUESTS SET DONE = 'Y' WHERE UPDATE_TYPE = "\
+                "'UPDATE_TODO_LIST'"
+            )
+            self.connection.commit()
+
+
+if __name__ == "__main__":
+    PrettyPiApp().run()

@@ -1,50 +1,54 @@
-import sqlite3;
-import hashlib;
+from hashlib import md5
+from sqlite3 import Connection, Cursor, connect
+from typing import Optional
+
 
 class User:
-	__username = None;
-	__password = None;
-	__name = None;
-	__cursor = None;
-		
-	def getConnection( self ):
-		connection = sqlite3.connect( 'data.db' );
-		cursor = connection.cursor();
-		
-		return ( connection, cursor )
-	
-	def hasPermission( self ):
-		( connection, cursor ) = self.getConnection();
-		
-		print ( self.__username, self.__password );
+    __username = Optional[str]
+    __password = Optional[str]
+    __name = Optional[str]
+    __cursor = Optional[Cursor]
 
-		cursor.execute( 'SELECT * FROM USERS WHERE USERNAME = ? AND PASSWORD = ?', ( self.__username, self.__password ) );
+    @classmethod
+    def get_connection(cls) -> tuple[Connection, Cursor]:
+        connection = connect("data.db")
+        cursor = connection.cursor()
+        return connection, cursor
 
-		result = cursor.fetchall();
+    @classmethod
+    def has_permission(cls) -> bool:
+        _, cursor = cls.get_connection()
+        cursor.execute(
+            "SELECT * FROM USERS WHERE USERNAME = ? AND PASSWORD = ?",
+            (cls.__username, cls.__password),
+        )
+        result = cursor.fetchall()
+        if len(result) > 0:
+            cls.__name = result[0][3]
+            return True
+        return False
 
-		if len( result ) > 0:
-			self.__name = result[ 0 ][ 3 ];
+    @classmethod
+    def set_username(cls, username: str) -> None:
+        cls.__username = username
 
-			return True;
+    @classmethod
+    def set_password(cls, password: str) -> None:
+        hashFunction = md5(password)
+        cls.__password = hashFunction.hexdigest()
 
-		return False;
+    @classmethod
+    def set_hashed_password(cls, hashedPassword) -> None:
+        cls.__password = hashedPassword
 
-	def setUsername( self, username ):
-		self.__username = username;
+    @classmethod
+    def get_username(cls) -> str:
+        return cls.__username
 
-	def setPassword( self, password ):
-		hashFunction = hashlib.md5( password );
+    @classmethod
+    def get_hashed_password(cls) -> str:
+        return cls.__password
 
-		self.__password = hashFunction.hexdigest();
-
-	def setHashedPassword( self, hashedPassword ):
-		self.__password = hashedPassword;
-
-	def getUsername( self ):
-		return self.__username;
-
-	def getHashedPassword( self ):
-		return self.__password;
-
-	def getName( self ):
-		return self.__name;
+    @classmethod
+    def get_name(cls) -> str:
+        return cls.__name

@@ -17,13 +17,13 @@
   <!-- Main content -->
 	<section class="content">
 
-        {% if workingTask != None %}
+        {% if working_task != None %}
         <div class="info-box">
             <span class="info-box-icon bg-aqua"><i class="fa fa-hourglass-half"></i></span>
 
             <div class="info-box-content">
                 <span class="info-box-text">Working On</span>
-                <span class="info-box-text"><strong>{{ workingTask.1 }}</strong></span>
+                <span class="info-box-text"><strong>{{ working_task.1 }}</strong></span>
             </div>
         </div>
         {% endif %}
@@ -47,6 +47,38 @@
 					</form>
 				</div>
 
+				<div class="box box-danger">
+					<div class="box-header">
+						<h3 class="box-title">TODO</h3>
+					</div>
+					<div class="box-body no-padding">
+						<table class="table">
+							<tr>
+								<th style="width: 10px">#</th>
+								<th>Task</th>
+								<th>Start</th>
+								<th>Done</th>
+								<th>Delete</th>
+								<th>Created On</th>
+							</tr>
+							{% for task in tasks %}
+							<tr>
+								<td>{{ loop.index }}.</td>
+								<td>{{ task.1 }}</td>
+								{% if task.5 == 'N' %}
+								<td><a href="start_task?task_id={{ task.0 }}" class="btn btn-block btn-primary btn-sm">Start</a></td>
+								{% else %}
+								<td><a href="stop_task?task_id={{ task.0 }}" class="btn btn-block btn-warning btn-sm">Stop</a></td>
+								{% endif %}
+								<td><a href="task_done?task_id={{ task.0 }}" class="btn btn-block btn-success btn-sm">Done</a></td>
+								<td><a href="delete_task?task_id={{ task.0 }}" class="btn btn-block btn-danger btn-sm">Delete</a></td>
+								<td>{{ task.2 }}</td>
+							</tr>
+							{% endfor %}
+						</table>
+					</div>
+				</div>
+
 				<div class="box box-success">
 					<div class="box-header">
 						<h3 class="box-title">Done!</h3>
@@ -66,7 +98,7 @@
 								<td>{{ doneTask.1 }}</td>
                                 <td>{{ doneTask.2 }}</td>
                                 <td>{{ doneTask.4 }}</td>
-                                <td><a href="delete_task?task_id={{ doneTask.0 }}" class="btn btn-block btn-danger btn-sm">Delete</a></td>
+                                <td><a href="delete_task?task_id={{ done_task.0 }}" class="btn btn-block btn-danger btn-sm">Delete</a></td>
 							</tr>
 							{% endfor %}
 						</table>
@@ -74,39 +106,6 @@
 				</div>
 			</div>
 
-			<div class="col-md-6">
-				<div class="box box-danger">
-					<div class="box-header">
-						<h3 class="box-title">TODO</h3>
-					</div>
-		            <div class="box-body no-padding">
-						<table class="table">
-		                	<tr>
-								<th style="width: 10px">#</th>
-								<th>Task</th>
-								<th>Start</th>
-								<th>Done</th>
-								<th>Delete</th>
-								<th>Created On</th>
-							</tr>
-							{% for task in tasks %}
-							<tr>
-								<td>{{ loop.index }}.</td>
-								<td>{{ task.1 }}</td>
-                                {% if task.5 == 'N' %}
-								<td><a href="start_task?task_id={{ task.0 }}" class="btn btn-block btn-primary btn-sm">Start</a></td>
-                                {% else %}
-                                <td><a href="stop_task?task_id={{ task.0 }}" class="btn btn-block btn-warning btn-sm">Stop</a></td>
-                                {% endif %}
-								<td><a href="task_done?task_id={{ task.0 }}" class="btn btn-block btn-success btn-sm">Done</a></td>
-								<td><a href="delete_task?task_id={{ task.0 }}" class="btn btn-block btn-danger btn-sm">Delete</a></td>
-								<td>{{ task.2 }}</td>
-							</tr>
-							{% endfor %}
-						</table>
-					</div>
-				</div>
-			</div>
 		</div>
 	</section>
   <!-- /.content -->
