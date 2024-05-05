@@ -1,27 +1,42 @@
-from flask import Flask, render_template, request, make_response, redirect, Response
+"""App
+
+Handles the I/O and database queries
+"""
+
 from hashlib import md5
 from sqlite3 import connect, Connection, Cursor
 from time import strftime
 from typing import Optional
-from user import User
+
+from flask import Flask, render_template, request, make_response, redirect, Response
+
+from control.user import User
 
 app = Flask(__name__)
 
 
+TASK_ID_IS_NONE_ERROR =(
+    "Error: No task associated with that ID. Maybe someone else already deleted it?"
+)
+
+
 def get_connection() -> tuple[Connection, Cursor]:
+    """Returns the SQLite"""
     connection = connect("data.db")
     cursor = connection.cursor()
     return connection, cursor
 
 
 def is_installed() -> bool:
+    """Returns True if a user already exists"""
     _, cursor = get_connection()
     cursor.execute("SELECT COUNT( 1 ) FROM USERS")
     has_user = cursor.fetchone()[0]
     return has_user > 0
 
 
-def add_request(request_type) -> None:
+def add_request(request_type: str) -> None:
+    """Adds a task to the DB"""
     connection, cursor = get_connection()
     creation_date = strftime("%d-%m-%Y %H:%M:%S")
     cursor.execute(
@@ -34,6 +49,7 @@ def add_request(request_type) -> None:
 
 @app.before_request
 def before_request() -> Optional[str]:
+    """Determines which page to show the user based on install and login status"""
     if request.path == "/install":
         return None
     if not is_installed():
@@ -49,11 +65,13 @@ def before_request() -> Optional[str]:
 
 @app.route("/")
 def main() -> str:
+    """This is the landing page"""
     return render_template("main_page.html", name=User.get_name())
 
 
 @app.route("/install", methods=["POST"])
 def install() -> str:
+    """Initializes the PrettyPi site for the network"""
     connection, cursor = get_connection()
     if is_installed():
         return render_template(
@@ -78,14 +96,15 @@ def install() -> str:
     connection.commit()
     return render_template(
         "installer_message.html",
-        message="Congratulations! PrettyPi has been initialized. "\
+        message="Congratulations! PrettyPi has been initialized. "
         "Go back to homepage to start using it",
         type="success",
     )
 
 
 @app.route("/login", methods=["POST"])
-def login() -> str:
+def login() -> Response | str:
+    """Determines if the login information is valid"""
     User.set_username(request.form["username"])
     User.set_password(request.form["password"].encode("utf-8"))
     if User.has_permission():
@@ -93,11 +112,12 @@ def login() -> str:
         response.set_cookie("prettypi_username", User.get_username())
         response.set_cookie("prettypi_password", User.get_hashed_password())
         return response
-    return "Invalid"
+    return f'Invalid username ("{User.get_username()}") or password'
 
 
 @app.route("/logout")
 def logout() -> Response:
+    """Logs the current user out"""
     response = make_response(redirect("/"))
     response.set_cookie("prettypi_username", "")
     response.set_cookie("prettypi_password", "")
@@ -106,6 +126,7 @@ def logout() -> Response:
 
 @app.route("/tasks")
 def tasks_main():
+    """Retrieves the completed, running, and done tasks from the DB to display"""
     _, cursor = get_connection()
     cursor.execute("SELECT * FROM TODO WHERE DONE = 'N' ORDER BY CREATION_DATE DESC")
     tasks = cursor.fetchall()
@@ -124,6 +145,7 @@ def tasks_main():
 
 @app.route("/add_task", methods=["POST"])
 def new_task():
+    """Adds a new task to the DB"""
     connection, cursor = get_connection()
     if not request.form["task_details"]:
         return render_template(
@@ -141,10 +163,11 @@ def new_task():
 
 @app.route("/delete_task", methods=["GET"])
 def delete_task() -> Response | str:
+    """Deletes"""
     connection, cursor = get_connection()
     task_id = request.args.get("task_id", None)
     if task_id is None:
-        return "Invalid"
+        return TASK_ID_IS_NONE_ERROR
     cursor.execute("DELETE FROM TODO WHERE TASK_ID = ?", [task_id])
     cursor.execute("DELETE FROM TASKS_LOG WHERE TASK_ID = ?", [task_id])
     connection.commit()
@@ -154,10 +177,11 @@ def delete_task() -> Response | str:
 
 @app.route("/task_done", methods=["GET"])
 def mark_task_as_done() -> Response | str:
+    """Move a task to the "Done" table"""
     connection, cursor = get_connection()
     task_id = request.args.get("task_id", None)
     if task_id is None:
-        return "Invalid"
+        return TASK_ID_IS_NONE_ERROR
     current_date = strftime("%d-%m-%Y %H:%M:%S")
     cursor.execute(
         "UPDATE TODO SET WORKING_ON = 'N', DONE = 'Y', DONE_AT = ? WHERE TASK_ID = ?",
@@ -170,13 +194,13 @@ def mark_task_as_done() -> Response | str:
 
 @app.route("/start_task", methods=["GET"])
 def start_working_on_task() -> Response | str:
+    """Create the banner to indicate a task is currently pending"""
     connection, cursor = get_connection()
     task_id = request.args.get("task_id", None)
     if task_id is None:
-        return "Invalid"
+        return TASK_ID_IS_NONE_ERROR
     cursor.execute(
-        "SELECT COUNT( 1 ) FROM TODO WHERE WORKING_ON = 'Y' AND TASK_ID <> ?",
-        [task_id]
+        "SELECT COUNT( 1 ) FROM TODO WHERE WORKING_ON = 'Y' AND TASK_ID <> ?", [task_id]
     )
     currently_working_on = cursor.fetchone()[0]
     if currently_working_on > 0:
@@ -186,7 +210,7 @@ def start_working_on_task() -> Response | str:
             type="warning",
         )
     creation_date = strftime("%d-%m-%Y %H:%M:%S")
-    cursor.execute("UPDATE TODO SET WORKING_ON = 'Y' WHERE TASK_ID = ?",[task_id])
+    cursor.execute("UPDATE TODO SET WORKING_ON = 'Y' WHERE TASK_ID = ?", [task_id])
     cursor.execute(
         "INSERT INTO TASKS_LOG( TASK_ID, START_AT ) VALUES ( ?, ? )",
         [task_id, creation_date],
@@ -198,10 +222,11 @@ def start_working_on_task() -> Response | str:
 
 @app.route("/stop_task", methods=["GET"])
 def stop_working_on_task() -> Response | str:
+    """Remove a pending task from the banner"""
     connection, cursor = get_connection()
     task_id = request.args.get("task_id", None)
     if task_id is None:
-        return "Invalid"
+        return TASK_ID_IS_NONE_ERROR
     cursor.execute(
         "SELECT MAX( log_id ) FROM tasks_log WHERE TASK_ID = ? AND ENDED_AT IS NULL",
         [task_id],
