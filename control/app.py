@@ -15,7 +15,7 @@ from control.user import User
 app = Flask(__name__)
 
 
-TASK_ID_IS_NONE_ERROR =(
+TASK_ID_IS_NONE_ERROR = (
     "Error: No task associated with that ID. Maybe someone else already deleted it?"
 )
 

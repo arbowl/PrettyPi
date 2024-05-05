@@ -9,6 +9,7 @@ from typing import Optional
 
 class User:
     """Stores the username, password, and name in memory"""
+
     __name = Optional[str]
     __username = Optional[str]
     __password = Optional[str]
