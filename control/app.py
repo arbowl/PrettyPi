@@ -96,7 +96,7 @@ def install() -> str:
     connection.commit()
     return render_template(
         "installer_message.html",
-        message="Congratulations! PrettyPi has been initialized. "
+        message="Congratulations! PrettyPi has been installed. "
         "Go back to homepage to start using it",
         type="success",
     )
@@ -149,7 +149,9 @@ def new_task():
     connection, cursor = get_connection()
     if not request.form["task_details"]:
         return render_template(
-            "message.html", message="The details should not be empty", type="warning"
+            "message.html",
+            message="The details should not be empty.",
+            type="warning"
         )
     creation_date = strftime("%d-%m-%Y %H:%M:%S")
     cursor.execute(
